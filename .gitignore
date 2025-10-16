@@ -115,5 +115,5 @@ dmypy.json
 ehthumbs.db
 Thumbs.db
 
-# Logs
-*.log
+# Test files
+test_data.py

@@ -5,19 +5,38 @@ import json
 from collections import Counter
 import dash_bootstrap_components as dbc
 
-# Load data from JSON file
-with open('nextload.json', 'r') as f:
-    data = json.load(f)
-
-# Get first 50 entries
-loads = data['load_postings'][:50]
-
-# Convert timestamps to readable format
-for load in loads:
-    if load['postedTimestamp']:
-        load['postedDate'] = load['postedTimestamp'] / 1000  # Convert to seconds
-    if load['pickupTimestamp']:
-        load['pickupDate'] = load['pickupTimestamp'] / 1000
+# Load data from JSON file with error handling
+try:
+    with open('nextload.json', 'r') as f:
+        data = json.load(f)
+    
+    # Get first 50 entries with safety check
+    loads = data.get('load_postings', [])[:50]
+    
+    if not loads:
+        raise ValueError("No load data found in JSON file")
+    
+    # Convert timestamps to readable format with error handling
+    for load in loads:
+        try:
+            if load.get('postedTimestamp'):
+                load['postedDate'] = load['postedTimestamp'] / 1000  # Convert to seconds
+            if load.get('pickupTimestamp'):
+                load['pickupDate'] = load['pickupTimestamp'] / 1000
+        except (TypeError, KeyError):
+            continue  # Skip invalid timestamps
+    
+    print(f"Successfully loaded {len(loads)} load entries")
+    
+except FileNotFoundError:
+    print("Error: nextload.json file not found")
+    loads = []
+except json.JSONDecodeError:
+    print("Error: Invalid JSON format in nextload.json")
+    loads = []
+except Exception as e:
+    print(f"Error loading data: {e}")
+    loads = []
 
 # Create the Dash app with modern Bootstrap theme
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
@@ -195,17 +214,17 @@ app.layout = html.Div([
             ], className="metric-card fade-in"),
             
             html.Div([
-                html.Div(f"${sum(load['rateCents'] for load in loads if load['rateCents']) / len([l for l in loads if l['rateCents']]) / 100:.0f}", className="metric-value pulse"),
+                html.Div(f"${sum(load.get('rateCents', 0) for load in loads if load.get('rateCents', 0) > 0) / max(1, len([l for l in loads if l.get('rateCents', 0) > 0])) / 100:.0f}", className="metric-value pulse"),
                 html.Div("Average Rate", className="metric-label")
             ], className="metric-card fade-in"),
             
             html.Div([
-                html.Div(f"{sum(load['distanceMiles'] for load in loads) / len(loads):.0f}", className="metric-value pulse"),
+                html.Div(f"{sum(load.get('distanceMiles', 0) for load in loads) / max(1, len(loads)):.0f}", className="metric-value pulse"),
                 html.Div("Avg Distance (mi)", className="metric-label")
             ], className="metric-card fade-in"),
             
             html.Div([
-                html.Div(f"{len(set(load['equipmentType'] for load in loads if load['equipmentType']))}", className="metric-value pulse"),
+                html.Div(f"{len(set(load.get('equipmentType', 'Unknown') for load in loads if load.get('equipmentType')))}", className="metric-value pulse"),
                 html.Div("Equipment Types", className="metric-label")
             ], className="metric-card fade-in")
         ], style={'display': 'flex', 'justifyContent': 'space-around', 'flexWrap': 'wrap', 'marginBottom': '40px'}),
@@ -286,7 +305,19 @@ app.layout = html.Div([
     Input('equipment-pie', 'id')
 )
 def update_equipment_pie(_):
-    equipment_counts = Counter(load['equipmentType'] for load in loads if load['equipmentType'])
+    if not loads:
+        # Return empty figure if no data
+        fig = go.Figure()
+        fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
+        return fig
+    
+    equipment_counts = Counter(load.get('equipmentType', 'Unknown') for load in loads if load.get('equipmentType'))
+    
+    if not equipment_counts:
+        # Return empty figure if no equipment data
+        fig = go.Figure()
+        fig.add_annotation(text="No equipment data available", x=0.5, y=0.5, showarrow=False)
+        return fig
     
     fig = go.Figure(data=[go.Pie(
         labels=list(equipment_counts.keys()),
@@ -327,7 +358,19 @@ def update_equipment_pie(_):
     Input('rate-histogram', 'id')
 )
 def update_rate_histogram(_):
-    rates_dollars = [load['rateCents'] / 100 for load in loads if load['rateCents'] and load['rateCents'] > 0]
+    if not loads:
+        # Return empty figure if no data
+        fig = go.Figure()
+        fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
+        return fig
+    
+    rates_dollars = [load.get('rateCents', 0) / 100 for load in loads if load.get('rateCents', 0) > 0]
+    
+    if not rates_dollars:
+        # Return empty figure if no rate data
+        fig = go.Figure()
+        fig.add_annotation(text="No rate data available", x=0.5, y=0.5, showarrow=False)
+        return fig
     
     fig = go.Figure(data=[go.Histogram(
         x=rates_dollars,
@@ -361,7 +404,19 @@ def update_rate_histogram(_):
     Input('origin-states', 'id')
 )
 def update_origin_states(_):
-    origin_counts = Counter(load['originState'] for load in loads if load['originState'])
+    if not loads:
+        # Return empty figure if no data
+        fig = go.Figure()
+        fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
+        return fig
+    
+    origin_counts = Counter(load.get('originState', 'Unknown') for load in loads if load.get('originState'))
+    
+    if not origin_counts:
+        # Return empty figure if no origin data
+        fig = go.Figure()
+        fig.add_annotation(text="No origin data available", x=0.5, y=0.5, showarrow=False)
+        return fig
     
     fig = go.Figure(data=[go.Bar(
         x=list(origin_counts.keys()),
@@ -395,17 +450,29 @@ def update_origin_states(_):
     Input('distance-rate-scatter', 'id')
 )
 def update_distance_rate_scatter(_):
+    if not loads:
+        # Return empty figure if no data
+        fig = go.Figure()
+        fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
+        return fig
+    
     scatter_data = []
     for load in loads:
-        if load['rateCents'] and load['rateCents'] > 0:
+        if load.get('rateCents', 0) > 0 and load.get('distanceMiles', 0) > 0:
             scatter_data.append({
-                'distance': load['distanceMiles'],
-                'rate': load['rateCents'] / 100,
-                'equipment': load['equipmentType'] or 'Unknown',
-                'origin': load['originCity'],
-                'destination': load['destinationCity'],
-                'company': load['companyName']
+                'distance': load.get('distanceMiles', 0),
+                'rate': load.get('rateCents', 0) / 100,
+                'equipment': load.get('equipmentType', 'Unknown'),
+                'origin': load.get('originCity', 'Unknown'),
+                'destination': load.get('destinationCity', 'Unknown'),
+                'company': load.get('companyName', 'Unknown')
             })
+    
+    if not scatter_data:
+        # Return empty figure if no scatter data
+        fig = go.Figure()
+        fig.add_annotation(text="No scatter data available", x=0.5, y=0.5, showarrow=False)
+        return fig
     
     equipment_groups = {}
     for item in scatter_data:
@@ -466,3 +533,6 @@ if __name__ == '__main__':
     print(f"Loaded {len(loads)} load entries")
     print("Dashboard will be available at: http://localhost:8050")
     app.run(debug=True, host='0.0.0.0', port=8050)
+
+# For production deployment with Gunicorn
+server = app.server
