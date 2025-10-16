@@ -536,3 +536,8 @@ if __name__ == '__main__':
 
 # For production deployment with Gunicorn
 server = app.server
+
+# Make sure the app is properly configured for production
+if __name__ != '__main__':
+    # Production mode - ensure server is available
+    pass
