@@ -535,9 +535,5 @@ if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8050)
 
 # For production deployment with Gunicorn
+# Render expects 'app:app', so we make 'app' point to the server
 server = app.server
-
-# Make sure the app is properly configured for production
-if __name__ != '__main__':
-    # Production mode - ensure server is available
-    pass
