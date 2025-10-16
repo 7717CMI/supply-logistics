@@ -1,10 +1,14 @@
-<<<<<<< HEAD
 # 🌟 NextLoad Modern Light Theme Dashboard
 
 ## ✅ **YOUR LOCALHOST URL:**
 ```
 http://localhost:8050
 ```
+
+## 🔧 **Recent Fixes:**
+- ✅ **Fixed pandas compatibility issue** - Removed pandas dependency for Python 3.13 compatibility
+- ✅ **Updated requirements.txt** - Now works with Python 3.11.9 and 3.13
+- ✅ **Deployment ready** - Compatible with Render.com and other cloud platforms
 
 ## 🎨 **2024 Modern Light Theme Features:**
 
@@ -88,10 +92,23 @@ This dashboard features:
 - ✅ **Responsive Design** - Works everywhere
 - ✅ **Interactive Charts** - Professional data visualization
 - ✅ **Modern Typography** - Clean, readable fonts
+- ✅ **Python 3.13 Compatible** - No pandas dependency issues
 
 **Open http://localhost:8050 to see your 2024-ready modern light theme dashboard!** 🎉
 
 This is professional, clean, and modern - perfect for business presentations! 🚀✨
-=======
-# supply-logistics
->>>>>>> 63241c3ef06bf02e466dc0baf4136ae155a2ad0f
+
+## 🛠️ **Installation & Deployment:**
+
+### **Local Development:**
+```bash
+cd plotly-dashboard
+pip install -r requirements.txt
+python app.py
+```
+
+### **Render.com Deployment:**
+- Uses `render.yaml` for automatic deployment
+- Compatible with Python 3.11.9
+- No pandas dependency issues
+- Ready for production deployment
