@@ -39,10 +39,10 @@ except Exception as e:
     loads = []
 
 # Create the Dash app with modern Bootstrap theme
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
+dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
 
 # Custom CSS for modern dark theme
-app.index_string = '''
+dash_app.index_string = '''
 <!DOCTYPE html>
 <html>
     <head>
@@ -201,7 +201,7 @@ app.index_string = '''
 '''
 
 # Define the layout
-app.layout = html.Div([
+dash_app.layout = html.Div([
     html.Div([
         html.H1("NextLoad Analytics Dashboard", className="title fade-in"),
         html.P("Real-time freight logistics insights powered by advanced analytics", className="subtitle fade-in"),
@@ -300,7 +300,7 @@ app.layout = html.Div([
 ])
 
 # Callbacks for interactive charts with modern styling
-@app.callback(
+@dash_app.callback(
     Output('equipment-pie', 'figure'),
     Input('equipment-pie', 'id')
 )
@@ -353,7 +353,7 @@ def update_equipment_pie(_):
     
     return fig
 
-@app.callback(
+@dash_app.callback(
     Output('rate-histogram', 'figure'),
     Input('rate-histogram', 'id')
 )
@@ -399,7 +399,7 @@ def update_rate_histogram(_):
     
     return fig
 
-@app.callback(
+@dash_app.callback(
     Output('origin-states', 'figure'),
     Input('origin-states', 'id')
 )
@@ -445,7 +445,7 @@ def update_origin_states(_):
     
     return fig
 
-@app.callback(
+@dash_app.callback(
     Output('distance-rate-scatter', 'figure'),
     Input('distance-rate-scatter', 'id')
 )
@@ -532,8 +532,11 @@ if __name__ == '__main__':
     print("Starting NextLoad Modern Dashboard...")
     print(f"Loaded {len(loads)} load entries")
     print("Dashboard will be available at: http://localhost:8050")
-    app.run(debug=True, host='0.0.0.0', port=8050)
+    dash_app.run(debug=True, host='0.0.0.0', port=8050)
 
 # For production deployment with Gunicorn
-# Render expects 'app:app', so we make 'app' point to the server
-server = app.server
+# Make the Dash app properly callable for WSGI
+server = dash_app.server
+
+# For Gunicorn compatibility - make 'app' refer to the WSGI callable
+app = dash_app.server
