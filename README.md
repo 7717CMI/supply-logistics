@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🌟 NextLoad Modern Light Theme Dashboard
 
 ## ✅ **YOUR LOCALHOST URL:**
@@ -91,3 +92,6 @@ This dashboard features:
 **Open http://localhost:8050 to see your 2024-ready modern light theme dashboard!** 🎉
 
 This is professional, clean, and modern - perfect for business presentations! 🚀✨
+=======
+# supply-logistics
+>>>>>>> 63241c3ef06bf02e466dc0baf4136ae155a2ad0f
