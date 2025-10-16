@@ -1,6 +1,5 @@
 import dash
 from dash import dcc, html, Input, Output, dash_table
-import plotly.express as px
 import plotly.graph_objects as go
 import json
 from collections import Counter
