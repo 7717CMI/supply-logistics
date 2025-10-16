@@ -1,4 +1,4 @@
-# 🚀 NextLoad Analytics Dashboard
+# 🚀 Supply Logistics Dashboard
 
 A modern, interactive dashboard for freight logistics analytics built with Plotly Dash.
 

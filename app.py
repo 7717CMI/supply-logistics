@@ -227,7 +227,7 @@ def create_layout():
     try:
         return html.Div([
     html.Div([
-        html.H1("NextLoad Analytics Dashboard", className="title fade-in"),
+        html.H1("Supply Logistics Dashboard", className="title fade-in"),
         html.P("Real-time freight logistics insights powered by advanced analytics", className="subtitle fade-in"),
         
         # Summary cards with modern design
@@ -563,7 +563,7 @@ def update_distance_rate_scatter(_):
     return fig
 
 if __name__ == '__main__':
-    print("Starting NextLoad Modern Dashboard...")
+    print("Starting Supply Logistics Dashboard...")
     print(f"Loaded {len(loads)} load entries")
     print("Dashboard will be available at: http://localhost:8050")
     dash_app.run(debug=True, host='0.0.0.0', port=8050)
