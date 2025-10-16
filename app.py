@@ -6,37 +6,58 @@ from collections import Counter
 import dash_bootstrap_components as dbc
 
 # Load data from JSON file with error handling
-try:
-    with open('nextload.json', 'r') as f:
-        data = json.load(f)
+import os
+
+def load_data():
+    """Load data with multiple fallback paths for different environments"""
+    possible_paths = [
+        'nextload.json',
+        './nextload.json',
+        os.path.join(os.path.dirname(__file__), 'nextload.json'),
+        os.path.join(os.getcwd(), 'nextload.json')
+    ]
     
-    # Get first 50 entries with safety check
-    loads = data.get('load_postings', [])[:50]
-    
-    if not loads:
-        raise ValueError("No load data found in JSON file")
-    
-    # Convert timestamps to readable format with error handling
-    for load in loads:
+    for path in possible_paths:
         try:
-            if load.get('postedTimestamp'):
-                load['postedDate'] = load['postedTimestamp'] / 1000  # Convert to seconds
-            if load.get('pickupTimestamp'):
-                load['pickupDate'] = load['pickupTimestamp'] / 1000
-        except (TypeError, KeyError):
-            continue  # Skip invalid timestamps
+            print(f"Trying to load data from: {path}")
+            with open(path, 'r') as f:
+                data = json.load(f)
+            
+            # Get first 50 entries with safety check
+            loads = data.get('load_postings', [])[:50]
+            
+            if not loads:
+                print(f"No load data found in {path}")
+                continue
+            
+            # Convert timestamps to readable format with error handling
+            for load in loads:
+                try:
+                    if load.get('postedTimestamp'):
+                        load['postedDate'] = load['postedTimestamp'] / 1000  # Convert to seconds
+                    if load.get('pickupTimestamp'):
+                        load['pickupDate'] = load['pickupTimestamp'] / 1000
+                except (TypeError, KeyError):
+                    continue  # Skip invalid timestamps
+            
+            print(f"Successfully loaded {len(loads)} load entries from {path}")
+            return loads
+            
+        except FileNotFoundError:
+            print(f"File not found: {path}")
+            continue
+        except json.JSONDecodeError:
+            print(f"Invalid JSON format in {path}")
+            continue
+        except Exception as e:
+            print(f"Error loading data from {path}: {e}")
+            continue
     
-    print(f"Successfully loaded {len(loads)} load entries")
-    
-except FileNotFoundError:
-    print("Error: nextload.json file not found")
-    loads = []
-except json.JSONDecodeError:
-    print("Error: Invalid JSON format in nextload.json")
-    loads = []
-except Exception as e:
-    print(f"Error loading data: {e}")
-    loads = []
+    print("Could not load data from any path, using empty dataset")
+    return []
+
+# Load the data
+loads = load_data()
 
 # Create the Dash app with modern Bootstrap theme
 dash_app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.BOOTSTRAP])
@@ -200,8 +221,11 @@ dash_app.index_string = '''
 </html>
 '''
 
-# Define the layout
-dash_app.layout = html.Div([
+# Define the layout with error handling
+def create_layout():
+    """Create the dashboard layout with error handling"""
+    try:
+        return html.Div([
     html.Div([
         html.H1("NextLoad Analytics Dashboard", className="title fade-in"),
         html.P("Real-time freight logistics insights powered by advanced analytics", className="subtitle fade-in"),
@@ -298,6 +322,16 @@ dash_app.layout = html.Div([
         ], className="data-table fade-in")
     ], className="main-container")
 ])
+    except Exception as e:
+        print(f"Error creating layout: {e}")
+        return html.Div([
+            html.H1("Dashboard Error", style={'textAlign': 'center', 'color': 'red'}),
+            html.P(f"Error loading dashboard: {str(e)}", style={'textAlign': 'center'}),
+            html.P("Please check the server logs for more details.", style={'textAlign': 'center'})
+        ])
+
+# Set the layout
+dash_app.layout = create_layout()
 
 # Callbacks for interactive charts with modern styling
 @dash_app.callback(
