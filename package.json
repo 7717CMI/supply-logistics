@@ -1,0 +1,14 @@
+{
+  "name": "plotly-dashboard",
+  "version": "1.0.0",
+  "description": "Plotly Dashboard for NextLoad Data",
+  "main": "app.py",
+  "scripts": {
+    "start": "python app.py"
+  },
+  "dependencies": {
+    "plotly": "^5.17.0",
+    "dash": "^2.14.1",
+    "pandas": "^2.1.3"
+  }
+}
