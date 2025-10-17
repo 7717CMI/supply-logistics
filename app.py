@@ -151,11 +151,23 @@ dash_app.index_string = '''
                 font-weight: 800;
                 text-align: center;
                 margin-bottom: 40px;
+                color: #3b82f6;
                 background: linear-gradient(135deg, #3b82f6, #1d4ed8, #1e40af);
                 -webkit-background-clip: text;
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
                 text-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
+                position: relative;
+                z-index: 1;
+            }
+            
+            /* Fallback for browsers that don't support background-clip */
+            @supports not (-webkit-background-clip: text) {
+                .title {
+                    color: #3b82f6 !important;
+                    background: none !important;
+                    -webkit-text-fill-color: #3b82f6 !important;
+                }
             }
             
             .subtitle {
@@ -209,83 +221,30 @@ dash_app.index_string = '''
                 100% { transform: scale(1); }
             }
             
-            /* Fix dropdown z-index issues */
-            .Select-menu-outer {
-                z-index: 1000 !important;
-                position: absolute !important;
-            }
-            
-            .Select-menu {
-                z-index: 1000 !important;
-                position: absolute !important;
-            }
-            
-            .dash-dropdown .Select-menu-outer {
-                z-index: 1000 !important;
-                position: absolute !important;
-            }
-            
-            .dash-dropdown .Select-menu {
-                z-index: 1000 !important;
-                position: absolute !important;
-            }
-            
-            /* Ensure title and header stay on top */
+            /* Simple dropdown fixes - don't interfere with functionality */
             .title {
                 position: relative;
-                z-index: 1001;
-                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-                padding: 10px 0;
-                margin-bottom: 20px;
+                z-index: 1;
             }
             
             .subtitle {
                 position: relative;
-                z-index: 1001;
-                background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
-                padding: 5px 0;
-                margin-bottom: 20px;
+                z-index: 1;
             }
             
-            /* Fix filter container positioning */
+            /* Filter container with proper spacing */
             .filter-container {
-                position: relative;
-                z-index: 5;
-                margin-top: 40px;
-                clear: both;
+                margin-top: 30px;
+                margin-bottom: 30px;
             }
             
-            /* Ensure dropdowns don't overlap title */
-            .Select-control {
-                position: relative;
-                z-index: 100;
-            }
-            
+            /* Ensure dropdowns work properly */
             .Select-menu-outer {
-                z-index: 1000 !important;
-                position: absolute !important;
-                top: 100% !important;
-                left: 0 !important;
-                right: 0 !important;
-                max-height: 200px !important;
-                overflow-y: auto !important;
+                z-index: 1000;
             }
             
-            /* Prevent dropdown from going above title */
-            .dash-dropdown {
-                position: relative;
-                z-index: 100;
-            }
-            
-            .dash-dropdown .Select-menu-outer {
-                z-index: 1000 !important;
-                position: absolute !important;
-                top: 100% !important;
-                left: 0 !important;
-                right: 0 !important;
-                max-height: 200px !important;
-                overflow-y: auto !important;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+            .Select-menu {
+                z-index: 1000;
             }
         </style>
     </head>
@@ -317,7 +276,7 @@ def create_layout():
         
         # Filters Section
         html.Div([
-            html.H4("Filters", style={'marginBottom': '15px', 'color': '#1e293b', 'position': 'relative', 'zIndex': 10}),
+            html.H4("Filters", style={'marginBottom': '15px', 'color': '#1e293b'}),
             html.Div([
                 html.Div([
                     html.Label("Equipment Type:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
@@ -326,10 +285,9 @@ def create_layout():
                         options=[{'label': 'All Equipment', 'value': 'all'}] + 
                                [{'label': eq, 'value': eq} for eq in sorted(set(load.get('equipmentType', 'Unknown') for load in loads if load.get('equipmentType')))],
                         value='all',
-                        style={'minWidth': '200px'},
-                        className='dash-dropdown'
+                        style={'minWidth': '200px'}
                     )
-                ], style={'marginRight': '20px', 'position': 'relative', 'zIndex': 5}),
+                ], style={'marginRight': '20px'}),
                 
                 html.Div([
                     html.Label("Origin State:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
@@ -338,10 +296,9 @@ def create_layout():
                         options=[{'label': 'All States', 'value': 'all'}] + 
                                [{'label': state, 'value': state} for state in sorted(set(load.get('originState', 'Unknown') for load in loads if load.get('originState')))],
                         value='all',
-                        style={'minWidth': '150px'},
-                        className='dash-dropdown'
+                        style={'minWidth': '150px'}
                     )
-                ], style={'marginRight': '20px', 'position': 'relative', 'zIndex': 5}),
+                ], style={'marginRight': '20px'}),
                 
                 html.Div([
                     html.Label("Rate Range:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
@@ -354,9 +311,9 @@ def create_layout():
                         marks={i: f'${i:,.0f}' for i in range(0, int(max(load.get('rateCents', 0) for load in loads if load.get('rateCents', 0) > 0) / 100) + 1000, 1000)},
                         tooltip={"placement": "bottom", "always_visible": True}
                     )
-                ], style={'flex': '1', 'minWidth': '300px', 'position': 'relative', 'zIndex': 5})
-            ], style={'display': 'flex', 'flexWrap': 'wrap', 'alignItems': 'end', 'gap': '20px', 'position': 'relative', 'zIndex': 5})
-        ], className="chart-container filter-container fade-in", style={'marginBottom': '30px', 'marginTop': '30px'}),
+                ], style={'flex': '1', 'minWidth': '300px'})
+            ], style={'display': 'flex', 'flexWrap': 'wrap', 'alignItems': 'end', 'gap': '20px'})
+        ], className="chart-container filter-container fade-in"),
         
         # Summary cards with modern design
         html.Div([
