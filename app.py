@@ -230,25 +230,72 @@ def create_layout():
         html.H1("Supply Logistics Dashboard", className="title fade-in"),
         html.P("Real-time freight logistics insights powered by advanced analytics", className="subtitle fade-in"),
         
+        # Disclaimer
+        html.Div([
+            html.P("📋 Note: This dataset is for illustration purposes only. It does not represent actual data and has no association with real-world datasets.", 
+                   style={'textAlign': 'center', 'fontStyle': 'italic', 'color': '#64748b', 'marginBottom': '20px', 'padding': '10px', 'backgroundColor': '#f8fafc', 'borderRadius': '8px', 'border': '1px solid #e2e8f0'})
+        ], className="fade-in"),
+        
+        # Filters Section
+        html.Div([
+            html.H4("Filters", style={'marginBottom': '15px', 'color': '#1e293b'}),
+            html.Div([
+                html.Div([
+                    html.Label("Equipment Type:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
+                    dcc.Dropdown(
+                        id='equipment-filter',
+                        options=[{'label': 'All Equipment', 'value': 'all'}] + 
+                               [{'label': eq, 'value': eq} for eq in sorted(set(load.get('equipmentType', 'Unknown') for load in loads if load.get('equipmentType')))],
+                        value='all',
+                        style={'minWidth': '200px'}
+                    )
+                ], style={'marginRight': '20px'}),
+                
+                html.Div([
+                    html.Label("Origin State:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
+                    dcc.Dropdown(
+                        id='state-filter',
+                        options=[{'label': 'All States', 'value': 'all'}] + 
+                               [{'label': state, 'value': state} for state in sorted(set(load.get('originState', 'Unknown') for load in loads if load.get('originState')))],
+                        value='all',
+                        style={'minWidth': '150px'}
+                    )
+                ], style={'marginRight': '20px'}),
+                
+                html.Div([
+                    html.Label("Rate Range:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
+                    dcc.RangeSlider(
+                        id='rate-filter',
+                        min=0,
+                        max=max(load.get('rateCents', 0) for load in loads if load.get('rateCents', 0) > 0) / 100,
+                        step=100,
+                        value=[0, max(load.get('rateCents', 0) for load in loads if load.get('rateCents', 0) > 0) / 100],
+                        marks={i: f'${i:,.0f}' for i in range(0, int(max(load.get('rateCents', 0) for load in loads if load.get('rateCents', 0) > 0) / 100) + 1000, 1000)},
+                        tooltip={"placement": "bottom", "always_visible": True}
+                    )
+                ], style={'flex': '1', 'minWidth': '300px'})
+            ], style={'display': 'flex', 'flexWrap': 'wrap', 'alignItems': 'end', 'gap': '20px'})
+        ], className="chart-container fade-in", style={'marginBottom': '30px'}),
+        
         # Summary cards with modern design
         html.Div([
             html.Div([
-                html.Div(f"{len(loads)}", className="metric-value pulse"),
+                html.Div(id='total-loads', children=f"{len(loads)}", className="metric-value pulse"),
                 html.Div("Total Loads", className="metric-label")
             ], className="metric-card fade-in"),
             
             html.Div([
-                html.Div(f"${sum(load.get('rateCents', 0) for load in loads if load.get('rateCents', 0) > 0) / max(1, len([l for l in loads if l.get('rateCents', 0) > 0])) / 100:.0f}", className="metric-value pulse"),
+                html.Div(id='avg-rate', children=f"${sum(load.get('rateCents', 0) for load in loads if load.get('rateCents', 0) > 0) / max(1, len([l for l in loads if l.get('rateCents', 0) > 0])) / 100:.0f}", className="metric-value pulse"),
                 html.Div("Average Rate", className="metric-label")
             ], className="metric-card fade-in"),
             
             html.Div([
-                html.Div(f"{sum(load.get('distanceMiles', 0) for load in loads) / max(1, len(loads)):.0f}", className="metric-value pulse"),
+                html.Div(id='avg-distance', children=f"{sum(load.get('distanceMiles', 0) for load in loads) / max(1, len(loads)):.0f}", className="metric-value pulse"),
                 html.Div("Avg Distance (mi)", className="metric-label")
             ], className="metric-card fade-in"),
             
             html.Div([
-                html.Div(f"{len(set(load.get('equipmentType', 'Unknown') for load in loads if load.get('equipmentType')))}", className="metric-value pulse"),
+                html.Div(id='equipment-count', children=f"{len(set(load.get('equipmentType', 'Unknown') for load in loads if load.get('equipmentType')))}", className="metric-value pulse"),
                 html.Div("Equipment Types", className="metric-label")
             ], className="metric-card fade-in")
         ], style={'display': 'flex', 'justifyContent': 'space-around', 'flexWrap': 'wrap', 'marginBottom': '40px'}),
@@ -289,7 +336,7 @@ def create_layout():
                     {'name': 'Equipment', 'id': 'equipmentType', 'type': 'text'},
                     {'name': 'Company', 'id': 'companyName', 'type': 'text'}
                 ],
-                data=loads,
+                data=[],  # Will be updated by callback
                 page_size=10,
                 style_cell={
                     'textAlign': 'left',
@@ -333,19 +380,51 @@ def create_layout():
 # Set the layout
 dash_app.layout = create_layout()
 
+# Callback to filter data based on user selections
+@dash_app.callback(
+    Output('filtered-data', 'data'),
+    [Input('equipment-filter', 'value'),
+     Input('state-filter', 'value'),
+     Input('rate-filter', 'value')]
+)
+def filter_data(equipment_filter, state_filter, rate_filter):
+    """Filter the loads data based on user selections"""
+    filtered_loads = loads.copy()
+    
+    # Filter by equipment type
+    if equipment_filter != 'all':
+        filtered_loads = [load for load in filtered_loads if load.get('equipmentType') == equipment_filter]
+    
+    # Filter by origin state
+    if state_filter != 'all':
+        filtered_loads = [load for load in filtered_loads if load.get('originState') == state_filter]
+    
+    # Filter by rate range
+    if rate_filter:
+        min_rate = rate_filter[0] * 100  # Convert to cents
+        max_rate = rate_filter[1] * 100
+        filtered_loads = [load for load in filtered_loads 
+                         if load.get('rateCents', 0) >= min_rate and load.get('rateCents', 0) <= max_rate]
+    
+    return filtered_loads
+
+# Add a hidden div to store filtered data
+dash_app.layout.children.append(html.Div(id='filtered-data', style={'display': 'none'}))
+
 # Callbacks for interactive charts with modern styling
 @dash_app.callback(
     Output('equipment-pie', 'figure'),
-    Input('equipment-pie', 'id')
+    [Input('equipment-pie', 'id'),
+     Input('filtered-data', 'data')]
 )
-def update_equipment_pie(_):
-    if not loads:
+def update_equipment_pie(_, filtered_data):
+    if not filtered_data:
         # Return empty figure if no data
         fig = go.Figure()
         fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
         return fig
     
-    equipment_counts = Counter(load.get('equipmentType', 'Unknown') for load in loads if load.get('equipmentType'))
+    equipment_counts = Counter(load.get('equipmentType', 'Unknown') for load in filtered_data if load.get('equipmentType'))
     
     if not equipment_counts:
         # Return empty figure if no equipment data
@@ -389,16 +468,17 @@ def update_equipment_pie(_):
 
 @dash_app.callback(
     Output('rate-histogram', 'figure'),
-    Input('rate-histogram', 'id')
+    [Input('rate-histogram', 'id'),
+     Input('filtered-data', 'data')]
 )
-def update_rate_histogram(_):
-    if not loads:
+def update_rate_histogram(_, filtered_data):
+    if not filtered_data:
         # Return empty figure if no data
         fig = go.Figure()
         fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
         return fig
     
-    rates_dollars = [load.get('rateCents', 0) / 100 for load in loads if load.get('rateCents', 0) > 0]
+    rates_dollars = [load.get('rateCents', 0) / 100 for load in filtered_data if load.get('rateCents', 0) > 0]
     
     if not rates_dollars:
         # Return empty figure if no rate data
@@ -435,16 +515,17 @@ def update_rate_histogram(_):
 
 @dash_app.callback(
     Output('origin-states', 'figure'),
-    Input('origin-states', 'id')
+    [Input('origin-states', 'id'),
+     Input('filtered-data', 'data')]
 )
-def update_origin_states(_):
-    if not loads:
+def update_origin_states(_, filtered_data):
+    if not filtered_data:
         # Return empty figure if no data
         fig = go.Figure()
         fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
         return fig
     
-    origin_counts = Counter(load.get('originState', 'Unknown') for load in loads if load.get('originState'))
+    origin_counts = Counter(load.get('originState', 'Unknown') for load in filtered_data if load.get('originState'))
     
     if not origin_counts:
         # Return empty figure if no origin data
@@ -481,17 +562,18 @@ def update_origin_states(_):
 
 @dash_app.callback(
     Output('distance-rate-scatter', 'figure'),
-    Input('distance-rate-scatter', 'id')
+    [Input('distance-rate-scatter', 'id'),
+     Input('filtered-data', 'data')]
 )
-def update_distance_rate_scatter(_):
-    if not loads:
+def update_distance_rate_scatter(_, filtered_data):
+    if not filtered_data:
         # Return empty figure if no data
         fig = go.Figure()
         fig.add_annotation(text="No data available", x=0.5, y=0.5, showarrow=False)
         return fig
     
     scatter_data = []
-    for load in loads:
+    for load in filtered_data:
         if load.get('rateCents', 0) > 0 and load.get('distanceMiles', 0) > 0:
             scatter_data.append({
                 'distance': load.get('distanceMiles', 0),
@@ -561,6 +643,35 @@ def update_distance_rate_scatter(_):
     )
     
     return fig
+
+# Callback to update summary cards
+@dash_app.callback(
+    [Output('total-loads', 'children'),
+     Output('avg-rate', 'children'),
+     Output('avg-distance', 'children'),
+     Output('equipment-count', 'children')],
+    Input('filtered-data', 'data')
+)
+def update_summary_cards(filtered_data):
+    if not filtered_data:
+        return "0", "$0", "0", "0"
+    
+    total_loads = len(filtered_data)
+    avg_rate = sum(load.get('rateCents', 0) for load in filtered_data if load.get('rateCents', 0) > 0) / max(1, len([l for l in filtered_data if l.get('rateCents', 0) > 0])) / 100
+    avg_distance = sum(load.get('distanceMiles', 0) for load in filtered_data) / max(1, len(filtered_data))
+    equipment_count = len(set(load.get('equipmentType', 'Unknown') for load in filtered_data if load.get('equipmentType')))
+    
+    return f"{total_loads}", f"${avg_rate:.0f}", f"{avg_distance:.0f}", f"{equipment_count}"
+
+# Callback to update data table
+@dash_app.callback(
+    Output('loads-table', 'data'),
+    Input('filtered-data', 'data')
+)
+def update_data_table(filtered_data):
+    if not filtered_data:
+        return []
+    return filtered_data
 
 if __name__ == '__main__':
     print("Starting Supply Logistics Dashboard...")
