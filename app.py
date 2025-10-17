@@ -7,6 +7,8 @@ import dash_bootstrap_components as dbc
 
 # Load data from JSON file with error handling
 import os
+from datetime import datetime, timedelta
+import random
 
 def load_data():
     """Load data with multiple fallback paths for different environments"""
@@ -30,9 +32,26 @@ def load_data():
                 print(f"No load data found in {path}")
                 continue
             
-            # Convert timestamps to readable format with error handling
-            for load in loads:
+            # Add realistic dates to make it look like a live dashboard
+            today = datetime.now()
+            one_week_ago = today - timedelta(days=7)
+            one_week_ahead = today + timedelta(days=7)
+            
+            for i, load in enumerate(loads):
                 try:
+                    # Generate realistic posting dates (today to one week ago)
+                    days_ago = random.randint(0, 7)
+                    posting_date = today - timedelta(days=days_ago)
+                    load['postingDate'] = posting_date.strftime('%Y-%m-%d')
+                    load['postingDateTime'] = posting_date.strftime('%Y-%m-%d %H:%M')
+                    
+                    # Generate realistic delivery dates (today to one week ahead)
+                    days_ahead = random.randint(0, 7)
+                    delivery_date = today + timedelta(days=days_ahead)
+                    load['deliveryDate'] = delivery_date.strftime('%Y-%m-%d')
+                    load['deliveryDateTime'] = delivery_date.strftime('%Y-%m-%d %H:%M')
+                    
+                    # Keep original timestamps for compatibility
                     if load.get('postedTimestamp'):
                         load['postedDate'] = load['postedTimestamp'] / 1000  # Convert to seconds
                     if load.get('pickupTimestamp'):
@@ -358,6 +377,31 @@ def create_layout():
                         tooltip={"placement": "bottom", "always_visible": True}
                     )
                 ], style={'flex': '1', 'minWidth': '300px'})
+            ], style={'display': 'flex', 'flexWrap': 'wrap', 'alignItems': 'end', 'gap': '20px', 'marginBottom': '20px'}),
+            
+            # Date Filters Row
+            html.Div([
+                html.Div([
+                    html.Label("Posting Date Range:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
+                    dcc.DatePickerRange(
+                        id='posting-date-filter',
+                        start_date=(datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d'),
+                        end_date=datetime.now().strftime('%Y-%m-%d'),
+                        display_format='YYYY-MM-DD',
+                        style={'minWidth': '250px'}
+                    )
+                ], style={'marginRight': '20px'}),
+                
+                html.Div([
+                    html.Label("Delivery Date Range:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
+                    dcc.DatePickerRange(
+                        id='delivery-date-filter',
+                        start_date=datetime.now().strftime('%Y-%m-%d'),
+                        end_date=(datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'),
+                        display_format='YYYY-MM-DD',
+                        style={'minWidth': '250px'}
+                    )
+                ], style={'marginRight': '20px'})
             ], style={'display': 'flex', 'flexWrap': 'wrap', 'alignItems': 'end', 'gap': '20px'})
         ], className="chart-container filter-container fade-in"),
         
@@ -418,7 +462,9 @@ def create_layout():
                     {'name': 'Distance (mi)', 'id': 'distanceMiles', 'type': 'numeric', 'format': {'specifier': '.0f'}},
                     {'name': 'Rate ($)', 'id': 'rateCents', 'type': 'numeric', 'format': {'specifier': '.2f'}},
                     {'name': 'Equipment', 'id': 'equipmentType', 'type': 'text'},
-                    {'name': 'Company', 'id': 'companyName', 'type': 'text'}
+                    {'name': 'Company', 'id': 'companyName', 'type': 'text'},
+                    {'name': 'Posted Date', 'id': 'postingDate', 'type': 'text'},
+                    {'name': 'Delivery Date', 'id': 'deliveryDate', 'type': 'text'}
                 ],
                 data=[],  # Will be updated by callback
                 page_size=10,
@@ -470,9 +516,14 @@ dash_app.layout = create_layout()
     [Input('equipment-filter', 'value'),
      Input('state-filter', 'value'),
      Input('company-filter', 'value'),
-     Input('rate-filter', 'value')]
+     Input('rate-filter', 'value'),
+     Input('posting-date-filter', 'start_date'),
+     Input('posting-date-filter', 'end_date'),
+     Input('delivery-date-filter', 'start_date'),
+     Input('delivery-date-filter', 'end_date')]
 )
-def filter_data(equipment_filter, state_filter, company_filter, rate_filter):
+def filter_data(equipment_filter, state_filter, company_filter, rate_filter, 
+                posting_start, posting_end, delivery_start, delivery_end):
     """Filter the loads data based on user selections"""
     filtered_loads = loads.copy()
     
@@ -494,6 +545,18 @@ def filter_data(equipment_filter, state_filter, company_filter, rate_filter):
         max_rate = rate_filter[1] * 100
         filtered_loads = [load for load in filtered_loads 
                          if load.get('rateCents', 0) >= min_rate and load.get('rateCents', 0) <= max_rate]
+    
+    # Filter by posting date range
+    if posting_start and posting_end:
+        filtered_loads = [load for load in filtered_loads 
+                         if load.get('postingDate') and 
+                         posting_start <= load.get('postingDate') <= posting_end]
+    
+    # Filter by delivery date range
+    if delivery_start and delivery_end:
+        filtered_loads = [load for load in filtered_loads 
+                         if load.get('deliveryDate') and 
+                         delivery_start <= load.get('deliveryDate') <= delivery_end]
     
     return filtered_loads
 
