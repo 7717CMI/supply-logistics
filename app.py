@@ -586,13 +586,13 @@ def update_rate_histogram(_, filtered_data):
     
     fig.update_layout(
         title={
-            'text': "Rate Distribution",
+            'text': "Rate Distribution<br><sub>Frequency = Number of loads in each rate range</sub>",
             'x': 0.5,
             'xanchor': 'center',
             'font': {'size': 20, 'color': '#3b82f6', 'family': 'Inter'}
         },
         xaxis_title="Rate ($)",
-        yaxis_title="Frequency",
+        yaxis_title="Frequency (Number of Loads)",
         font={'color': '#1e293b', 'family': 'Inter'},
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
