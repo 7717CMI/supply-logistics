@@ -221,6 +221,41 @@ dash_app.index_string = '''
                 100% { transform: scale(1); }
             }
             
+            /* Fix dropdown z-index issues */
+            .Select-menu-outer {
+                z-index: 9999 !important;
+                position: relative;
+            }
+            
+            .Select-menu {
+                z-index: 9999 !important;
+            }
+            
+            .Select-option {
+                z-index: 9999 !important;
+            }
+            
+            /* Ensure dropdowns appear above all other elements */
+            .dash-dropdown .Select-menu-outer {
+                z-index: 9999 !important;
+            }
+            
+            .dash-dropdown .Select-menu {
+                z-index: 9999 !important;
+            }
+            
+            /* Fix for metric cards to not interfere with dropdowns */
+            .metric-card {
+                position: relative;
+                z-index: 1;
+            }
+            
+            /* Filter container with proper z-index */
+            .filter-container {
+                position: relative;
+                z-index: 2;
+            }
+            
             /* Simple dropdown fixes - don't interfere with functionality */
             .title {
                 position: relative;
@@ -297,6 +332,17 @@ def create_layout():
                                [{'label': state, 'value': state} for state in sorted(set(load.get('originState', 'Unknown') for load in loads if load.get('originState')))],
                         value='all',
                         style={'minWidth': '150px'}
+                    )
+                ], style={'marginRight': '20px'}),
+                
+                html.Div([
+                    html.Label("Company:", style={'fontWeight': 'bold', 'marginBottom': '5px', 'display': 'block'}),
+                    dcc.Dropdown(
+                        id='company-filter',
+                        options=[{'label': 'All Companies', 'value': 'all'}] + 
+                               [{'label': company, 'value': company} for company in sorted(set(load.get('companyName', 'Unknown') for load in loads if load.get('companyName')))],
+                        value='all',
+                        style={'minWidth': '200px'}
                     )
                 ], style={'marginRight': '20px'}),
                 
@@ -423,9 +469,10 @@ dash_app.layout = create_layout()
     Output('filtered-data', 'data'),
     [Input('equipment-filter', 'value'),
      Input('state-filter', 'value'),
+     Input('company-filter', 'value'),
      Input('rate-filter', 'value')]
 )
-def filter_data(equipment_filter, state_filter, rate_filter):
+def filter_data(equipment_filter, state_filter, company_filter, rate_filter):
     """Filter the loads data based on user selections"""
     filtered_loads = loads.copy()
     
@@ -436,6 +483,10 @@ def filter_data(equipment_filter, state_filter, rate_filter):
     # Filter by origin state
     if state_filter != 'all':
         filtered_loads = [load for load in filtered_loads if load.get('originState') == state_filter]
+    
+    # Filter by company
+    if company_filter != 'all':
+        filtered_loads = [load for load in filtered_loads if load.get('companyName') == company_filter]
     
     # Filter by rate range
     if rate_filter:
